@@ -29,6 +29,29 @@ from tqdm import tqdm
 from spectangle.utils.metrics import cube_metrics
 
 
+def get_device() -> torch.device:
+    """Auto-detect the best available accelerator.
+
+    Priority order: CUDA (NVIDIA / ROCm) → MPS (Apple Silicon) → CPU.
+
+    Returns
+    -------
+    torch.device
+        The best device available on the current machine.
+
+    Examples
+    --------
+    >>> device = get_device()
+    >>> print(device)
+    device(type='mps')          # on an Apple Silicon Mac
+    """
+    if torch.cuda.is_available():
+        return torch.device("cuda")
+    if torch.backends.mps.is_available():
+        return torch.device("mps")
+    return torch.device("cpu")
+
+
 class Trainer:
     """Generic trainer for spectangle 3-D reconstruction models.
 
@@ -41,8 +64,9 @@ class Trainer:
         For PINN: ``(pred, target, observed) → (total, breakdown_dict)``.
     optimizer : Optimizer
     scheduler : _LRScheduler, optional
-    device : str or torch.device
-        Target device.  Defaults to CUDA if available.
+    device : str or torch.device, optional
+        Target device.  When ``None`` (default), ``get_device()`` is called
+        automatically: CUDA → MPS (Apple Silicon) → CPU.
     physics_mode : bool
         If True, the trainer expects ``model.forward_with_physics_loss`` and
         a ``CombinedLoss`` that accepts an ``observed`` tensor.
@@ -64,8 +88,9 @@ class Trainer:
         log_csv: Optional[str | Path] = None,
     ) -> None:
         if device is None:
-            device = "cuda" if torch.cuda.is_available() else "cpu"
+            device = get_device()
         self.device = torch.device(device)
+        print(f"[spectangle] Using device: {self.device}")
         self.model = model.to(self.device)
         self.loss_fn = loss_fn
         self.optimizer = optimizer

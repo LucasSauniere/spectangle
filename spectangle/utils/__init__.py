@@ -13,7 +13,7 @@ from spectangle.utils.visualization import (
     plot_spectrum_comparison,
 )
 from spectangle.utils.metrics import cube_metrics
-from spectangle.utils.training import Trainer
+from spectangle.utils.training import Trainer, get_device
 
 __all__ = [
     "plot_cube_slice",
@@ -24,4 +24,5 @@ __all__ = [
     "plot_spectrum_comparison",
     "cube_metrics",
     "Trainer",
+    "get_device",
 ]
