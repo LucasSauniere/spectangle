@@ -18,6 +18,23 @@ class Offset:
     delta_x: float
     delta_y: float
 
+    # Allow numpy to unpack Offset as a 2-element sequence so that
+    #   np.array([disp.wavelength_to_offset(l) for l in wav])
+    # produces a (n_lambda, 2) array rather than a 1-D object array.
+    def __iter__(self):
+        yield self.delta_x
+        yield self.delta_y
+
+    def __len__(self):
+        return 2
+
+    def __getitem__(self, index):
+        if index == 0:
+            return self.delta_x
+        if index == 1:
+            return self.delta_y
+        raise IndexError(f"Offset index {index} out of range (0 or 1)")
+
 
 class DispersionModel:
     """Linear dispersion model mapping wavelength → pixel offsets.
