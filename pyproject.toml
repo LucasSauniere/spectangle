@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "spectangle"
+version = "0.1.0"
+description = "Spectroscopic Disentangling: 3D cube reconstruction from Euclid NISP slitless spectrograms"
+authors = [{ name = "Euclid Team" }]
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+dependencies = [
+    "numpy>=1.26",
+    "scipy>=1.12",
+    "astropy>=6.0",
+    "h5py>=3.10",
+    "pyyaml>=6.0",
+    "matplotlib>=3.8",
+    "tqdm>=4.66",
+    "torch>=2.2",
+    "torchvision>=0.17",
+    "einops>=0.7",
+    "scikit-image>=0.22",
+]
+
+[project.optional-dependencies]
+astro = [
+    "synphot>=1.3",
+    "dust_extinction>=1.3",
+]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov",
+    "ipykernel",
+    "jupyterlab",
+    "black",
+    "ruff",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["spectangle*"]
+
+[tool.ruff]
+line-length = 100
+
+[tool.black]
+line-length = 100

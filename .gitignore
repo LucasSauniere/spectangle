@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+*.so
+*.dylib
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+.conda/
+
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Data files (large binary files)
+data/raw/*.h5
+data/interim/*.h5
+data/processed/*.h5
+*.hdf5
+*.h5
+
+# Model checkpoints
+*.pt
+*.pth
+*.ckpt
+checkpoints/
+runs/
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Distribution / packaging
+*.tar.gz
+*.zip

@@ -1,0 +1,26 @@
+# ============================================================
+# spectangle — Complex euclid-like simulation config
+# ============================================================
+# Generates a realistic NISP-like dataset with multi-order
+# dispersion, Poisson + read noise, and configurable SEDs.
+#
+# Run:
+#   python scripts/run_simulation.py --config configs/simulations/complex_euclid.yaml
+# ============================================================
+
+simulation:
+  type: complex                  # "simple" | "complex"
+  n_samples: 200
+  n_sources: 20                  # point sources per field
+  image_shape: [128, 128]        # (ny, nx) — use [2048,2048] for full NISP
+  n_spectral_pixels: 128         # spectral channels
+  psf_fwhm_pixels: 1.6
+  orders: [0, 1, 2]             # diffraction orders to simulate
+  add_noise: true                # NISP noise model (Poisson + read noise)
+  use_realistic_seds: false      # set true to use synphot/BaSeL templates
+  exposure_time_s: 565.0         # NISP standard exposure time
+  include_direct: true
+  seed: 123
+
+data:
+  output_path: data/raw/complex_euclid_200s.h5

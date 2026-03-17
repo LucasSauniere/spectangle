@@ -1,0 +1,40 @@
+# ============================================================
+# spectangle — Physics-Informed Neural Network (PINN) Model Config
+# ============================================================
+# PINN is intended to incorporate the forward dispersion model into the
+# training loss (set loss.physics > 0 to enable). Typical usage is to use
+# a smaller spectral dimensionality for the miniature tests (n_lambda=128)
+# and a full spectral sampling for euclid-like experiments.
+
+model:
+  type: pinn
+  in_channels: 5                 # 4 (spectrograms only) | 5 (+ direct image)
+  n_lambda: 128
+  hidden_dim: 256
+  n_layers: 6
+  dropout: 0.1
+
+training:
+  n_epochs: 120
+  batch_size: 8
+  learning_rate: 5.0e-5
+  lr_scheduler: cosine
+  warmup_epochs: 5
+  grad_clip_norm: 1.0
+  seed: 42
+
+loss:
+  mse: 1.0
+  ssim: 0.5
+  spectral: 0.1
+  physics: 1.0                   # weight of the physics-informed loss term
+
+data:
+  h5_path: data/raw/complex_euclid_100s.h5
+  split_ratios: [0.8, 0.1, 0.1]
+  normalise: per_sample
+  num_workers: 6
+
+output:
+  checkpoint_dir: checkpoints/pinn
+  log_csv: logs/pinn_training.csv

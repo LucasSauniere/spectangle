@@ -1,0 +1,22 @@
+# ============================================================
+# spectangle — Simple miniature simulation config
+# ============================================================
+# Generates a noiseless, 1st-order-only, blackbody-SED dataset
+# for fast proof-of-concept ML training.
+#
+# Run:
+#   python scripts/run_simulation.py --config configs/simulations/simple_mini.yaml
+# ============================================================
+
+simulation:
+  type: simple                   # "simple" | "complex"
+  n_samples: 1000
+  n_sources: 6                   # point sources per field
+  image_shape: [128, 128]        # (ny, nx) scene dimensions
+  n_spectral_pixels: 128         # spectral channels (miniature: 128)
+  psf_fwhm_pixels: 1.6           # Gaussian PSF FWHM
+  include_direct: true           # also save broadband direct image
+  seed: 42
+
+data:
+  output_path: data/raw/simple_mini_1000s.h5

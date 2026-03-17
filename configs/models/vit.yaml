@@ -1,0 +1,48 @@
+# ============================================================
+# spectangle — Vision Transformer Model Config
+# ============================================================
+# NOTE on image_size: spectrograms are padded by the forward model along the
+# dispersion axis (pad_x, pad_y from ForwardModel).  For the miniature setup
+# with image_shape=(128,128) and n_spectral_pixels=128, the 1st-order
+# dispersion pads each side by 64 pixels horizontally (RGS000/180 disperse
+# purely in x for the 0° and 180° angles) and a few pixels vertically for the
+# ±4° GWA-tilt arms.  Check sim.spectrogram_shape after building a simulator
+# and set image_size_h / image_size_w accordingly, or use the crop_to_scene
+# option in SpectangleDataModule to restore square inputs.
+
+model:
+  type: vit
+  in_channels: 5                 # using direct image as spatial prior
+  image_size: 128                # scene spatial size (cube H=W); spectrograms are larger
+  patch_size: 8                  # → 16×16 = 256 tokens (on scene-size crop)
+  embed_dim: 256                 # must be divisible by 4 and n_heads
+  depth: 6
+  n_heads: 8
+  n_lambda: 128
+  mlp_ratio: 4.0
+  dropout: 0.1
+
+training:
+  n_epochs: 150
+  batch_size: 8                  # ViT is heavier; reduce batch size
+  learning_rate: 5.0e-5
+  lr_scheduler: cosine
+  warmup_epochs: 10
+  grad_clip_norm: 1.0
+  seed: 42
+
+loss:
+  mse: 1.0
+  ssim: 0.5
+  spectral: 0.1
+  physics: 0.0
+
+data:
+  h5_path: data/raw/simple_mini_1000s.h5
+  split_ratios: [0.8, 0.1, 0.1]
+  normalise: per_sample
+  num_workers: 4
+
+output:
+  checkpoint_dir: checkpoints/vit
+  log_csv: logs/vit_training.csv
