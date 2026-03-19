@@ -22,10 +22,9 @@ dependencies:
   - pytest
   - pytest-cov
   - einops
-  - pytorch::pytorch
+  - pytorch::pytorch>=2.3   # ≥2.3 required for Conv3d on MPS (Apple Silicon)
   - pytorch::torchvision
   - pip:
       - synphot
       - dust_extinction
-      - mps-conv3d   # Metal Conv3D patch for Apple Silicon (no-op on non-MPS machines)
       - -e .         # install spectangle itself in editable mode (run from project root)
