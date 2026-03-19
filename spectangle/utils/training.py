@@ -30,13 +30,8 @@ from tqdm import tqdm
 from spectangle.utils.metrics import cube_metrics
 
 
-def _mps_supports_conv3d() -> bool:
-    """Return True if the current MPS backend can run a Conv3d forward pass.
-
-    Some PyTorch builds on Apple Silicon expose MPS but do not yet implement
-    all 3-D convolution primitives.  We probe with a tiny tensor so the
-    fallback is transparent to the user.
-    """
+def _probe_conv3d_mps() -> bool:
+    """Return True if Conv3d can run on MPS (after any available patching)."""
     try:
         x = torch.zeros(1, 1, 2, 2, 2, device="mps")
         conv = nn.Conv3d(1, 1, kernel_size=1, bias=False).to("mps")
@@ -46,16 +41,37 @@ def _mps_supports_conv3d() -> bool:
         return False
 
 
+def _try_patch_mps_conv3d() -> bool:
+    """Attempt to apply the ``mps-conv3d`` monkey-patch (if installed).
+
+    ``mps-conv3d`` (https://github.com/mpsops/mps-conv3d) provides a native
+    Metal implementation of Conv3D for Apple Silicon and transparently patches
+    ``torch.nn.functional.conv3d``.
+
+    Returns
+    -------
+    bool
+        True if the patch was applied and Conv3d now works on MPS.
+    """
+    try:
+        from mps_conv3d import patch_conv3d  # type: ignore[import]
+        patch_conv3d()
+        return _probe_conv3d_mps()
+    except ImportError:
+        return False
+
+
 def get_device() -> torch.device:
     """Auto-detect the best available accelerator.
 
-    Priority order: CUDA (NVIDIA / ROCm) → MPS (Apple Silicon, if Conv3d is
-    supported) → CPU.
+    Priority order: CUDA (NVIDIA / ROCm) → MPS (Apple Silicon) → CPU.
 
-    .. note::
-        Older PyTorch builds on Apple Silicon expose MPS but do **not** yet
-        support ``Conv3d``.  In that case MPS is skipped automatically and a
-        warning is printed so you know why CPU was chosen.
+    On Apple Silicon, Conv3d support on MPS depends on the PyTorch version:
+    - PyTorch ≥ 2.3 supports Conv3d on MPS natively.
+    - Older builds can use the ``mps-conv3d`` package (install with
+      ``pip install mps-conv3d``) which provides a Metal implementation and
+      is applied automatically here when detected.
+    - If neither condition is met, a warning is emitted and CPU is used.
 
     Returns
     -------
@@ -66,17 +82,24 @@ def get_device() -> torch.device:
     --------
     >>> device = get_device()
     >>> print(device)
-    device(type='mps')          # on an Apple Silicon Mac with full MPS support
+    device(type='mps')          # on an Apple Silicon Mac
     """
     if torch.cuda.is_available():
         return torch.device("cuda")
     if torch.backends.mps.is_available():
-        if _mps_supports_conv3d():
+        if _probe_conv3d_mps():
+            return torch.device("mps")
+        # Try the mps-conv3d Metal patch before giving up
+        if _try_patch_mps_conv3d():
+            print("[spectangle] Applied mps-conv3d patch — Conv3d now runs on MPS.")
             return torch.device("mps")
         warnings.warn(
-            "[spectangle] MPS is available but Conv3d is not yet supported on this "
-            "PyTorch build.  Falling back to CPU.  Upgrade PyTorch to a nightly or "
-            "newer release (>= 2.3) to enable full MPS support.",
+            "[spectangle] MPS is available but Conv3d is not supported on this "
+            "PyTorch build and the 'mps-conv3d' package is not installed.\n"
+            "Options to enable GPU training on Apple Silicon:\n"
+            "  1. pip install mps-conv3d   (recommended, works with PyTorch 2.x)\n"
+            "  2. Upgrade PyTorch to >= 2.3\n"
+            "Falling back to CPU for now.",
             stacklevel=2,
         )
     return torch.device("cpu")

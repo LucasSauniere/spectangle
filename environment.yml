@@ -27,4 +27,5 @@ dependencies:
   - pip:
       - synphot
       - dust_extinction
+      - mps-conv3d   # Metal Conv3D patch for Apple Silicon (no-op on non-MPS machines)
       - -e .         # install spectangle itself in editable mode (run from project root)
