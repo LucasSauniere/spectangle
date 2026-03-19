@@ -40,6 +40,7 @@ Each call to ``SimpleSimulator.run()`` produces an HDF5 file with groups:
 from __future__ import annotations
 
 import time
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -53,6 +54,29 @@ from spectangle.simulations.forward import ForwardModel
 from spectangle.simulations.io import save_simulation
 from spectangle.simulations.sed import BlackbodySED, random_blackbody_sed
 
+
+# ---------------------------------------------------------------------------
+# Module-level worker (must live at module scope to be picklable by
+# multiprocessing on all platforms, including macOS spawn-based processes).
+# ---------------------------------------------------------------------------
+
+def _worker(args: tuple) -> Dict:
+    """Generate a single sample in a subprocess.
+
+    Parameters
+    ----------
+    args : (sim_params_dict, seed_int)
+        ``sim_params_dict`` contains the keyword arguments for
+        ``SimpleSimulator.__init__`` (everything except ``seed``).
+        ``seed_int`` is the per-sample RNG seed for reproducibility.
+    """
+    sim_params, seed = args
+    sim = SimpleSimulator(**sim_params)
+    rng = np.random.default_rng(seed)
+    return sim.generate_one(rng)
+
+
+# ---------------------------------------------------------------------------
 
 class SimpleSimulator:
     """Generate noiseless 1st-order slitless spectroscopy training samples.
@@ -202,8 +226,14 @@ class SimpleSimulator:
         n_samples: int,
         output_path: str | Path,
         show_progress: bool = True,
+        n_workers: int = 1,
     ) -> Path:
         """Generate *n_samples* training examples and save them to one HDF5 file.
+
+        Generation can be parallelised across CPU cores with the ``n_workers``
+        argument.  Each worker process re-creates the simulator from the same
+        parameters and generates its sample with a unique, deterministic seed
+        derived from ``self.seed`` so the dataset is fully reproducible.
 
         Parameters
         ----------
@@ -213,16 +243,51 @@ class SimpleSimulator:
             Destination ``.h5`` file.
         show_progress : bool
             Display a ``tqdm`` progress bar.
+        n_workers : int
+            Number of parallel worker processes.  ``1`` (default) runs
+            sequentially in the calling process.  ``-1`` uses
+            ``os.cpu_count()`` workers (all available cores).
 
         Returns
         -------
         Path
             The written HDF5 file path.
         """
+        import os
+
+        if n_workers == -1:
+            n_workers = os.cpu_count() or 1
+
         output_path = Path(output_path)
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        rng = np.random.default_rng(self.seed)
+        # Derive one deterministic integer seed per sample from the master seed.
+        base_rng = np.random.default_rng(self.seed)
+        seeds = base_rng.integers(0, 2**31, size=n_samples).tolist()
+
+        # Pack simulator constructor kwargs (without 'seed' — each worker
+        # receives its own per-sample seed via the args tuple).
+        sim_params = dict(
+            n_sources=self.n_sources,
+            image_shape=self.image_shape,
+            n_spectral_pixels=self.n_spectral_pixels,
+            psf_fwhm_pixels=self.psf_fwhm_pixels,
+            include_direct=self.include_direct,
+            seed=None,
+        )
+        args = [(sim_params, s) for s in seeds]
+
+        if n_workers > 1:
+            with ProcessPoolExecutor(max_workers=n_workers) as executor:
+                futures = executor.map(_worker, args)
+                if show_progress:
+                    futures = tqdm(futures, total=n_samples, desc="Simulating", unit="sample")
+                samples = list(futures)
+        else:
+            iterator = args
+            if show_progress:
+                iterator = tqdm(iterator, total=n_samples, desc="Simulating", unit="sample")
+            samples = [_worker(a) for a in iterator]
 
         metadata = {
             "simulator": "SimpleSimulator",
@@ -238,16 +303,9 @@ class SimpleSimulator:
             "orders": "1",
             "noise": "none",
             "sed_type": "blackbody",
+            "n_workers": n_workers,
             "generated_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         }
-
-        samples = []
-        iterator = range(n_samples)
-        if show_progress:
-            iterator = tqdm(iterator, desc="Simulating", unit="sample")
-
-        for _ in iterator:
-            samples.append(self.generate_one(rng))
 
         save_simulation(samples, output_path, metadata)
         return output_path
