@@ -242,7 +242,10 @@ class SpectangleDataModule:
             batch_size=self.batch_size,
             shuffle=shuffle,
             num_workers=self.num_workers,
-            pin_memory=True,
+            # pin_memory is only beneficial for CUDA (pinned memory → faster
+            # CPU→GPU DMA).  On MPS or CPU it adds no benefit and can cause
+            # warnings / errors in some PyTorch versions.
+            pin_memory=torch.cuda.is_available(),
             drop_last=False,
         )
 

@@ -24,7 +24,6 @@ dependencies:
   - einops
   - pytorch::pytorch
   - pytorch::torchvision
-  - pytorch::pytorch-cuda=12.4
   - pip:
       - synphot
       - dust_extinction

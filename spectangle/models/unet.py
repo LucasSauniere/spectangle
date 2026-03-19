@@ -52,18 +52,27 @@ import torch.nn.functional as F
 # Building blocks
 # ---------------------------------------------------------------------------
 
+def _gn(num_channels: int, num_groups: int = 8) -> nn.GroupNorm:
+    """GroupNorm with a safe fallback when channels < num_groups."""
+    groups = min(num_groups, num_channels)
+    # num_channels must be divisible by groups
+    while num_channels % groups != 0:
+        groups -= 1
+    return nn.GroupNorm(groups, num_channels)
+
+
 class DoubleConv2d(nn.Module):
-    """Two consecutive (Conv2d → BN → ReLU) layers."""
+    """Two consecutive (Conv2d → GN → ReLU) layers."""
 
     def __init__(self, in_ch: int, out_ch: int, mid_ch: int | None = None) -> None:
         super().__init__()
         mid_ch = mid_ch or out_ch
         self.block = nn.Sequential(
             nn.Conv2d(in_ch, mid_ch, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(mid_ch),
+            _gn(mid_ch),
             nn.ReLU(inplace=True),
             nn.Conv2d(mid_ch, out_ch, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(out_ch),
+            _gn(out_ch),
             nn.ReLU(inplace=True),
         )
 
@@ -84,16 +93,16 @@ class Down2d(nn.Module):
 
 
 class DoubleConv3d(nn.Module):
-    """Two consecutive (Conv3d → BN → ReLU) layers."""
+    """Two consecutive (Conv3d → GN → ReLU) layers."""
 
     def __init__(self, in_ch: int, out_ch: int) -> None:
         super().__init__()
         self.block = nn.Sequential(
             nn.Conv3d(in_ch, out_ch, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm3d(out_ch),
+            _gn(out_ch),
             nn.ReLU(inplace=True),
             nn.Conv3d(out_ch, out_ch, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm3d(out_ch),
+            _gn(out_ch),
             nn.ReLU(inplace=True),
         )
 
@@ -102,12 +111,19 @@ class DoubleConv3d(nn.Module):
 
 
 class Up3d(nn.Module):
-    """Trilinear upsampling + DoubleConv3d with skip-connection concatenation."""
+    """Nearest-neighbour upsampling + DoubleConv3d with skip-connection concatenation.
+
+    Note: trilinear upsampling is **not** implemented for the MPS backend (Apple
+    Silicon GPU).  Nearest-neighbour upsampling is equivalent in quality after
+    the subsequent DoubleConv3d refinement block and works on all devices
+    (CUDA, MPS, CPU).
+    """
 
     def __init__(self, in_ch: int, out_ch: int) -> None:
         super().__init__()
         # in_ch = channels from below + channels from skip
-        self.up = nn.Upsample(scale_factor=(1, 2, 2), mode="trilinear", align_corners=True)
+        # mode="nearest" is supported on MPS; trilinear is not.
+        self.up = nn.Upsample(scale_factor=(1, 2, 2), mode="nearest")
         self.conv = DoubleConv3d(in_ch, out_ch)
 
     def forward(self, x: torch.Tensor, skip: torch.Tensor) -> torch.Tensor:
