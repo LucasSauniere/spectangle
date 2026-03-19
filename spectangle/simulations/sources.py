@@ -72,7 +72,7 @@ class GaussianSource:
         self.sigma_pixels = float(sigma_pixels)
 
     def render(self, ny: int, nx: int, xc: float, yc: float) -> np.ndarray:
-        """Render a (ny × nx) stamp centred at pixel (xc, yc).
+        """Render a (ny x nx) stamp centred at pixel (xc, yc).
 
         Returns
         -------
@@ -95,7 +95,7 @@ class SersicSource:
     """Complexity-1 source: 2-D Sérsic profile.
 
     The Sérsic law is:
-        I(r) = I_e × exp{ -b_n × [ (r / r_e)^{1/n} − 1 ] }
+        I(r) = I_e x exp{ -b_n x [ (r / r_e)^{1/n} − 1 ] }
 
     where b_n ≈ 1.9992 n − 0.3271 (Capaccioli 1989 approximation for n ≥ 0.5).
     The half-light radius r_e is given in pixels.
@@ -181,7 +181,7 @@ class DiscGalaxy:
 
     The surface brightness is a superposition of:
     * exponential disc:  I_d(r) ∝ exp(-r / h_r)
-    * de Vaucouleurs bulge: I_b(r) ∝ exp(-7.67 × [(r / r_b)^{1/4} − 1])
+    * de Vaucouleurs bulge: I_b(r) ∝ exp(-7.67 x [(r / r_b)^{1/4} − 1])
 
     Parameters
     ----------

@@ -19,7 +19,7 @@ Architecture overview
 Key design decisions
 --------------------
 * Positional encodings are 2-D sinusoidal, matching the spatial grid.
-* The decoder projects each token to ``patch_size² × n_lambda`` values, then
+* The decoder projects each token to ``patch_size² x n_lambda`` values, then
   reshapes (pixel-shuffle-like) to the full spatial resolution.
 * Uses ``einops`` for readable tensor manipulations.
 

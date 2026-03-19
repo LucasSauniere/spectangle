@@ -35,7 +35,7 @@ Design choices
    spatial and spectral structure.  Skip connections from the 2-D encoder are
    broadcast along the spectral axis before being concatenated.
 
-4. **Output head** — a 3-D 1×1×1 convolution maps to the desired number of
+4. **Output head** — a 3-D 1x1x1 convolution maps to the desired number of
    spectral channels, followed by a ReLU to ensure non-negative flux.
 """
 
@@ -190,7 +190,7 @@ class UNet2Dto3D(nn.Module):
         # ----------------------------------------------------------------
         # Spectral expansion bottleneck
         # Converts (B, C_bottleneck, H', W') → (B, n_lambda, C_3d, H', W')
-        # by projecting the channel dim to n_lambda via a 1×1 conv then
+        # by projecting the channel dim to n_lambda via a 1x1 conv then
         # reshaping.
         # ----------------------------------------------------------------
         self.bottleneck_ch = feats[-1]  # e.g. 512
@@ -215,7 +215,7 @@ class UNet2Dto3D(nn.Module):
             out_ch = feats[i]
             self.dec_ups.append(Up3d(below_ch + skip_ch, out_ch))
 
-        # Output: 1×1×1 conv → n_lambda channels (already the λ axis)
+        # Output: 1x1x1 conv → n_lambda channels (already the λ axis)
         # Final shape: (B, 1, n_lambda, H, W) → squeeze → (B, n_lambda, H, W)
         self.output_head = nn.Sequential(
             nn.Conv3d(feats[0], 1, kernel_size=1),

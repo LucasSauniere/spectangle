@@ -71,7 +71,7 @@ class PSFModel:
     # --- internal -----------------------------------------------------------
 
     def _make_kernel(self) -> np.ndarray:
-        """Build the (kernel_size × kernel_size) Gaussian kernel."""
+        """Build the (kernel_size x kernel_size) Gaussian kernel."""
         sigma = self.fwhm_pixels / 2.3548
         ctr = self.kernel_size // 2
         y, x = np.ogrid[: self.kernel_size, : self.kernel_size]
@@ -185,7 +185,7 @@ class EuclidNISPPSF(PSFModel):
     """Complexity-2 PSF: simplified Euclid NISP near-IR detector PSF.
 
     Models the NISP PSF as a Moffat core with:
-    * wavelength-dependent FWHM: FWHM(λ) = fwhm_ref × (λ/λ_ref)^power
+    * wavelength-dependent FWHM: FWHM(λ) = fwhm_ref x (λ/λ_ref)^power
     * optional mild ellipticity (elongation along a position angle PA).
     * optional diffraction ring halo (Airy-like contribution).
 

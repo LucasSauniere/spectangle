@@ -20,7 +20,7 @@ In the discrete (pixel-space) approximation we:
 The forward model also supports:
   * Multiple diffraction orders (each with its own dispersion factor and
     efficiency curve).
-  * An optional 0th-order "peanut" morphology (2× PSF FWHM, broadened).
+  * An optional 0th-order "peanut" morphology (2x PSF FWHM, broadened).
 
 Spectrogram shape
 -----------------

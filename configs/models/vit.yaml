@@ -14,7 +14,7 @@ model:
   type: vit
   in_channels: 5                 # using direct image as spatial prior
   image_size: 128                # scene spatial size (cube H=W); spectrograms are larger
-  patch_size: 8                  # → 16×16 = 256 tokens (on scene-size crop)
+  patch_size: 8                  # → 16x16 = 256 tokens (on scene-size crop)
   embed_dim: 256                 # must be divisible by 4 and n_heads
   depth: 6
   n_heads: 8

@@ -1,9 +1,9 @@
-name: spectangle_env
+name: spectangle_cuda_env
 # -----------------------------------------------------------------------
 # CUDA variant – use this on machines with an NVIDIA GPU.
 #
 #   conda env create -f environment-cuda.yml
-#   conda activate spectangle_env
+#   conda activate spectangle_cuda_env
 #
 # The pytorch-cuda package pins the CUDA runtime that PyTorch was
 # compiled against.  Change the version below to match the CUDA toolkit
@@ -35,7 +35,7 @@ dependencies:
   - einops
   - pytorch::pytorch
   - pytorch::torchvision
-  - pytorch::pytorch-cuda=12.4   # ← adjust to your CUDA version
+  - pytorch::pytorch-cuda=11.8   # ← adjust to your CUDA version
   - pip:
       - synphot
       - dust_extinction
