@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import csv
 import time
+import warnings
 from pathlib import Path
 from typing import Callable, Dict, Optional, Tuple
 
@@ -29,10 +30,32 @@ from tqdm import tqdm
 from spectangle.utils.metrics import cube_metrics
 
 
+def _mps_supports_conv3d() -> bool:
+    """Return True if the current MPS backend can run a Conv3d forward pass.
+
+    Some PyTorch builds on Apple Silicon expose MPS but do not yet implement
+    all 3-D convolution primitives.  We probe with a tiny tensor so the
+    fallback is transparent to the user.
+    """
+    try:
+        x = torch.zeros(1, 1, 2, 2, 2, device="mps")
+        conv = nn.Conv3d(1, 1, kernel_size=1, bias=False).to("mps")
+        _ = conv(x)
+        return True
+    except (RuntimeError, NotImplementedError):
+        return False
+
+
 def get_device() -> torch.device:
     """Auto-detect the best available accelerator.
 
-    Priority order: CUDA (NVIDIA / ROCm) → MPS (Apple Silicon) → CPU.
+    Priority order: CUDA (NVIDIA / ROCm) → MPS (Apple Silicon, if Conv3d is
+    supported) → CPU.
+
+    .. note::
+        Older PyTorch builds on Apple Silicon expose MPS but do **not** yet
+        support ``Conv3d``.  In that case MPS is skipped automatically and a
+        warning is printed so you know why CPU was chosen.
 
     Returns
     -------
@@ -43,12 +66,19 @@ def get_device() -> torch.device:
     --------
     >>> device = get_device()
     >>> print(device)
-    device(type='mps')          # on an Apple Silicon Mac
+    device(type='mps')          # on an Apple Silicon Mac with full MPS support
     """
     if torch.cuda.is_available():
         return torch.device("cuda")
     if torch.backends.mps.is_available():
-        return torch.device("mps")
+        if _mps_supports_conv3d():
+            return torch.device("mps")
+        warnings.warn(
+            "[spectangle] MPS is available but Conv3d is not yet supported on this "
+            "PyTorch build.  Falling back to CPU.  Upgrade PyTorch to a nightly or "
+            "newer release (>= 2.3) to enable full MPS support.",
+            stacklevel=2,
+        )
     return torch.device("cpu")
 
 
